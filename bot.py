@@ -42,7 +42,10 @@ async def on_command_error(ctx: Context, error: commands.CommandError):
 @channel_bound
 async def about(ctx: Context):
     prefix = utils.get_prefixes(ctx.guild)[0]
-    prefixes = [f'**`{p}`**' if not p.startswith('<') else p for p in utils.get_prefixes(ctx.guild)]
+    prefixes = [
+        p if p.startswith('<') else f'**`{p}`**'
+        for p in utils.get_prefixes(ctx.guild)
+    ]
     for p in prefixes:
         if p.startswith('<'):
             prefixes.remove(p)

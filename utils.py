@@ -16,20 +16,18 @@ if PREVIEW:
     SETTINGS_PATH = 'data/settings/settings_preview.json'
     DEFAULT_PREFIXES = ['rrp', 'russian-roulette-preview']
     FRAME_PATH = 'static/images/png/{size}x{size}/preview/{frame}.png'
-    MARKDOWN_PATH = 'static/markdown/{name}.md'
-    GIF_PATH = 'static/images/gif/spin.gif'
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN_PREVIEW')
     TITLE = "Russian Roulette [PREVIEW]"
-    URL = 'https://github.com/LemonPi314/russian-roulette-bot'
 else:
     SETTINGS_PATH = 'data/settings/settings.json'
     DEFAULT_PREFIXES = ['rr', 'russian-roulette']
     FRAME_PATH = 'static/images/png/{size}x{size}/{frame}.png'
-    MARKDOWN_PATH = 'static/markdown/{name}.md'
-    GIF_PATH = 'static/images/gif/spin.gif'
     DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
     TITLE = "Russian Roulette"
-    URL = 'https://github.com/LemonPi314/russian-roulette-bot'
+
+URL = 'https://github.com/LemonPi314/russian-roulette-bot'
+GIF_PATH = 'static/images/gif/spin.gif'
+MARKDOWN_PATH = 'static/markdown/{name}.md'
 
 
 def frame_path(frame: int, size: int) -> str:
@@ -55,10 +53,7 @@ def set_guilds(guilds: dict):
 
 
 def get_prefixes(guild: Guild, message: Message = None) -> list[str]:
-    if isinstance(guild, Guild):
-        id = guild.id
-    else:
-        id = message.guild.id
+    id = guild.id if isinstance(guild, Guild) else message.guild.id
     return get_guilds().get(str(id), {}).get('prefixes', DEFAULT_PREFIXES)
 
 
@@ -89,11 +84,10 @@ def update_guilds(bot: Bot):
     if 'default' in guild_ids:
         guild_ids.remove('default')
     for guild_id in guild_ids:
-        guild_obj = bot.get_guild(int(guild_id))
-        if not guild_obj:
-            guilds.pop(guild_id)
-        else:
+        if guild_obj := bot.get_guild(int(guild_id)):
             guilds[guild_id]['name'] = guild_obj.name
+        else:
+            guilds.pop(guild_id)
     for guild_obj in bot.guilds:
         if str(guild_obj.id) not in guild_ids:
             guilds[str(guild_obj.id)] = {
@@ -118,24 +112,18 @@ def parse_time(time_string: str, regex: str = None) -> datetime.timedelta:
 
 def parse_command(command: str) -> dict:
     args = shlex.split(command)
-    keys = []
     values = []
-    for arg in args:
-        if arg.endswith(':'):
-            keys.append(arg)
+    keys = [arg for arg in args if arg.endswith(':')]
     if not keys:
         return {}
     x = []
     for arg in args[args.index(keys[0]) + 1:]:
         if arg not in keys:
             x.append(arg)
-        if arg in keys or args.index(arg) == len(args) - 1:
-            if x:
-                values.append(x)
-                x = []
-            continue
-    opts = {k.strip(':'): v for k, v in zip(keys, values)}
-    return opts
+        if (arg in keys or args.index(arg) == len(args) - 1) and x:
+            values.append(x)
+            x = []
+    return {k.strip(':'): v for k, v in zip(keys, values)}
 
 
 def channel_bound(func):
